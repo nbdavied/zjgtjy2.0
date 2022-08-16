@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import mysql.connector
 from datetime import datetime
 from pytz import timezone
+import base
 
 YDLX = {
     "GYYD":"工业用地",
@@ -24,24 +25,7 @@ RESOURCE_AUCTION_URL = 'https://td.zjgtjy.cn:8553/devops/landAuctionBidding/getR
 REGION_CODE = '330200,330201,330203,330205,330211,330206,330212,330283,330281,330282,330226,330225'
 PAGE_SIZE = 50
 CONFIG = {}
-def loadConfig():
-    with open('config.txt', encoding='utf-8') as configFile:
-        configs = configFile.readlines()
-        for config in configs:
-            config = config.strip()
-            if(config[0] == '#'):
-                continue
-            if(config[-1] == '\n'):
-                config = config[:-1]
-            key_value = config.split('=')
-            key = key_value[0].strip()
-            value = key_value[1].strip()
-            CONFIG[key] = value
-def getDbConnection():
-    return mysql.connector.connect(user=CONFIG['db_user'],
-                                    password=CONFIG['db_passwd'],
-                                    host=CONFIG['db_host'],
-                                    database=CONFIG['db_database'])
+
 def getLandList(pageNumber):
     ts = int(round(time.time() * 1000))
     url = LIST_URL % (PAGE_SIZE, pageNumber, ts, REGION_CODE, int(ts / 1000) * 1000)
@@ -234,8 +218,8 @@ def localizeTime(utcTime):
     return s[:19]
 
 if __name__ == '__main__':
-    loadConfig()
-    conn = getDbConnection()
+    CONFIG = base.loadConfig()
+    conn = base.getDbConnection(CONFIG)
     for i in range(1, int(CONFIG['end_page']) + 1):
         landList = getLandList(i)
         for land in landList:

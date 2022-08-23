@@ -174,7 +174,7 @@ def insertZjgtjy(conn, landInfo):
         if i != len(columns) - 1:
             sql = sql + ','
     sql = sql + ")"
-    print(sql)
+    # print(sql)
     cursor = conn.cursor()
     cursor.execute(sql)
     conn.commit()

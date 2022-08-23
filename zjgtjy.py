@@ -156,7 +156,7 @@ def insertZjgtjy(conn, landInfo):
     'zywz','ghyt','jzmj','xzqbm','district','ydlx','crnx','crmj','crmjm','qsj','bzj','zjfd',
     'sffb','sfyxlhjm','sfyxnclxgs','jzmd_x','jzmd_s','sfytsyq','tsyqnr','cjfs','crxzfs','zyjd',
     'zyzt','fbsj','jddw','jssj','cjj','cjmx','rjl_x','rjl_s','sfydj','dj','jyjgms','lhl_x',
-    'lhl_s','xg_x','xg_s','sfzl','zymc','tdytms']
+    'lhl_s','xg_x','xg_s','sfzl','zymc','tdytms', 'jyfs']
     sql = "insert into zjgtjy ("
     for i in range(len(columns)):
         sql = sql + columns[i]
@@ -216,11 +216,65 @@ def localizeTime(utcTime):
     loc_d = utc_d.astimezone(timezone('Asia/Shanghai'))
     s = str(loc_d)
     return s[:19]
+def deleteByZjid(conn, zyid):
+    sql = "delete from zjgtjy where zyid = '%s'" % zyid
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    cursor.close()
+
+def refreshLandInfo(conn):
+    ### refresh lands that are not finished
+    sql = "select zyid, zyjd, jyfs from zjgtjy z where zyjd  in ('GGQ','GPQ', 'PMGGQ')"
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    for row in cursor.fetchall():
+        # print(row)
+        zyid = row[0]
+        jyfs = row[-1]
+        landData = None
+        if jyfs == 'GP':
+            landData = getGpResourceInfo(zyid)
+        else:
+            landData = getPmResourceInfo(zyid)
+        if(landData['ZYJD'] != row[1]):
+            print(zyid, ' status updated')
+            landInfo = readResourceInfo(landData)
+            landInfo['jyfs'] = jyfs
+            deleteByZjid(zyid)
+            insertZjgtjy(conn, landInfo)
+
+def generateFinalData(conn):
+    sql = "truncate table zjgtjy_dist"
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    conn.commit()
+    sql = r"""insert into zjgtjy_dist
+select zt.ztmc as '状态',zyid, zybh as '资源编号', d.name as '行政区划',
+case when z.district  in ('330203',
+'330205',
+'330206',
+'330211',
+'330212') then '1' else '0' END as '市五区',
+case when z.district  in ('330203',
+'330205',
+'330206',
+'330211',
+'330212','330283', '330213') then '1' else '0' END as '市六区',
+zymc as '资源名称',  zywz as '位置' , ghyt as '用途', date_format(ggfbsj, '%Y-%m-%d') as '公告发布时间',  date_format(gpjssj, '%Y-%m-%d') as '挂牌结束时间', 
+crmj as '出让面积',rjl_s as '容积率', crmj * rjl_s as '建筑面积',  bzj as '保证金',qsj as '起始价',   round(qsj / ( crmj * rjl_s) * 10000, 2) as '起始单价',cjj as '成交价',round(cjj/(crmj * rjl_s )*10000,2) as '成交单价', 
+concat(round((cjj-qsj)/qsj *100,1), '%')  as '溢价率',
+jddw as '竞得单位', date_format(jssj , '%Y-%m-%d')  as '成交时间'  from zjgtjy z
+left join district d on z.district  = d.code 
+left join zjzt zt on z.zyjd = zt.zyjd """
+    cursor.execute(sql)
+    conn.commit()
+    cursor.close()
 
 if __name__ == '__main__':
     CONFIG = base.loadConfig()
     conn = base.getDbConnection(CONFIG)
-    for i in range(1, int(CONFIG['end_page']) + 1):
+    refreshLandInfo(conn)
+    for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
         landList = getLandList(i)
         for land in landList:
             print("土地编号:", land['ZYBH'])
@@ -232,8 +286,10 @@ if __name__ == '__main__':
                 else:
                     landData = getPmResourceInfo(land['ZYID'])
                 landInfo = readResourceInfo(landData)
-                print(landInfo)
+                landInfo['jyfs'] = land['JYFS']
+                # print(landInfo)
                 insertZjgtjy(conn, landInfo)
+    generateFinalData(conn)
     conn.close()
 
             

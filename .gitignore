@@ -2,3 +2,4 @@
 config.txt
 nohup.out
 /__pycache__
+cron.log

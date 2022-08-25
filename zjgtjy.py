@@ -76,6 +76,8 @@ def readResourceInfo(data):
     land['bmjssj'] = localizeTime(getFromDist(data,'BMJSSJ'))
     # 报名开始时间
     land['bmkssj'] = localizeTime(getFromDist(data,'BMKSSJ'))
+    # 拍卖开始时间
+    land['pmkssj'] = localizeTime(getFromDist(data,'PMKSSJ'))
     # 土地位置
     land['zywz'] = getFromDist(data,'ZYWZ')
     # 规划用途
@@ -156,7 +158,7 @@ def insertZjgtjy(conn, landInfo):
     'zywz','ghyt','jzmj','xzqbm','district','ydlx','crnx','crmj','crmjm','qsj','bzj','zjfd',
     'sffb','sfyxlhjm','sfyxnclxgs','jzmd_x','jzmd_s','sfytsyq','tsyqnr','cjfs','crxzfs','zyjd',
     'zyzt','fbsj','jddw','jssj','cjj','cjmx','rjl_x','rjl_s','sfydj','dj','jyjgms','lhl_x',
-    'lhl_s','xg_x','xg_s','sfzl','zymc','tdytms', 'jyfs']
+    'lhl_s','xg_x','xg_s','sfzl','zymc','tdytms', 'jyfs','pmkssj']
     sql = "insert into zjgtjy ("
     for i in range(len(columns)):
         sql = sql + columns[i]
@@ -244,28 +246,27 @@ def refreshLandInfo(conn):
             insertZjgtjy(conn, landInfo)
 
 def generateFinalData(conn):
-    sql = "truncate table zjgtjy_dist"
+    sql = "drop table zjgtjy_dist"
     cursor = conn.cursor()
     cursor.execute(sql)
     conn.commit()
-    sql = r"""insert into zjgtjy_dist
-select zt.ztmc as '状态',zyid, zybh as '资源编号', d.name as '行政区划',
-case when z.district  in ('330203',
+    sql = r"""create table zjgtjy_dist
+select case when z.district  in ('330203',
 '330205',
 '330206',
 '330211',
-'330212') then '1' else '0' END as '市五区',
-case when z.district  in ('330203',
-'330205',
-'330206',
-'330211',
-'330212','330283', '330213') then '1' else '0' END as '市六区',
-zymc as '资源名称',  zywz as '位置' , ghyt as '用途', date_format(ggfbsj, '%Y-%m-%d') as '公告发布时间',  date_format(gpjssj, '%Y-%m-%d') as '挂牌结束时间', 
+'330212','330283', '330213','330201') then '1' else '0' END as '市六区',
+ghyt as '用途',
+zt.ztmc as '状态',zyid, 
+d.name as '行政区划',
+zymc as '资源名称',  
+zybh as '资源编号', 
+zywz as '位置' ,  date_format(ggfbsj, '%Y-%m-%d') as '公告发布时间',  
+case when jyfs = 'GP' then date_format(gpjssj, '%Y-%m-%d') else date_format(pmkssj, '%Y-%m-%d')  end as '交易时间', 
 crmj as '出让面积',rjl_s as '容积率', crmj * rjl_s as '建筑面积',  bzj as '保证金',qsj as '起始价',   round(qsj / ( crmj * rjl_s) * 10000, 2) as '起始单价',cjj as '成交价',round(cjj/(crmj * rjl_s )*10000,2) as '成交单价', 
-concat(round((cjj-qsj)/qsj *100,1), '%')  as '溢价率',
-jddw as '竞得单位', date_format(jssj , '%Y-%m-%d')  as '成交时间'  from zjgtjy z
-left join district d on z.district  = d.code 
-left join zjzt zt on z.zyjd = zt.zyjd """
+jddw as '竞得单位',concat(round((cjj-qsj)/qsj *100,1), '%')  as '溢价率', date_format(jssj , '%Y-%m-%d')  as '成交时间'  from zjgtjy z
+left join district d on z.xzqbm  = d.code 
+left join zjzt zt on z.zyjd = zt.zyjd"""
     cursor.execute(sql)
     conn.commit()
     cursor.close()

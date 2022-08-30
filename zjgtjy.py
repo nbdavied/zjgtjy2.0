@@ -242,7 +242,7 @@ def refreshLandInfo(conn):
             print(zyid, ' status updated')
             landInfo = readResourceInfo(landData)
             landInfo['jyfs'] = jyfs
-            deleteByZjid(zyid)
+            deleteByZjid(conn,zyid)
             insertZjgtjy(conn, landInfo)
 
 def generateFinalData(conn):

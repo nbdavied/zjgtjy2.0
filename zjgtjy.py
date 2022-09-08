@@ -24,7 +24,7 @@ RESOURCE_URL = 'https://td.zjgtjy.cn:8553/devops/landHangoutBidding/getResource?
 RESOURCE_AUCTION_URL = 'https://td.zjgtjy.cn:8553/devops/landAuctionBidding/getResource?resourceId=%s&date=%d'
 REGION_CODE = '330200,330201,330203,330205,330211,330206,330212,330283,330281,330282,330226,330225'
 PAGE_SIZE = 50
-CONFIG = {}
+
 
 def getLandList(pageNumber):
     ts = int(round(time.time() * 1000))
@@ -271,11 +271,10 @@ left join zjzt zt on z.zyjd = zt.zyjd"""
     conn.commit()
     cursor.close()
 
-if __name__ == '__main__':
-    CONFIG = base.loadConfig()
-    conn = base.getDbConnection(CONFIG)
+def run(config):
+    conn = base.getDbConnection(config)
     refreshLandInfo(conn)
-    for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
+    for i in range(int(config['start_page']), int(config['end_page']) + 1):
         landList = getLandList(i)
         for land in landList:
             print("土地编号:", land['ZYBH'])
@@ -292,6 +291,10 @@ if __name__ == '__main__':
                 insertZjgtjy(conn, landInfo)
     generateFinalData(conn)
     conn.close()
+
+if __name__ == '__main__':
+    config = base.loadConfig()
+    run(config)
 
             
 

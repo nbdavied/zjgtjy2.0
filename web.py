@@ -3,8 +3,14 @@ import tornado.web
 import mysql.connector
 import base
 import json
+import zjgtjy
 
 CONFIG = {}
+class UpdateHandler(tornado.web.RequestHandler):
+    def get(self):
+        zjgtjy.run(CONFIG)
+        self.write("ok")
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         conn = base.getDbConnection(CONFIG)
@@ -25,6 +31,7 @@ class MainHandler(tornado.web.RequestHandler):
 def make_app():
     return tornado.web.Application([
             (r"/", MainHandler),
+            (r"/update", UpdateHandler)
         ]
     )
 

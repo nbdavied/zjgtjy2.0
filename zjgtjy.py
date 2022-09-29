@@ -226,7 +226,7 @@ def deleteByZjid(conn, zyid):
 
 def refreshLandInfo(conn):
     ### refresh lands that are not finished
-    sql = "select zyid, zyjd, jyfs from zjgtjy z where zyjd  in ('GGQ','GPQ', 'PMGGQ')"
+    sql = "select zyid, zyjd, jyfs from zjgtjy z where zyjd  in ('GGQ','GPQ', 'PMGGQ', 'PMXWQ', 'PMJJQ')"
     cursor = conn.cursor()
     cursor.execute(sql)
     for row in cursor.fetchall():
